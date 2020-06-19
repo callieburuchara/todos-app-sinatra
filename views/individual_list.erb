@@ -1,0 +1,37 @@
+<section id="todos">
+
+  <header>
+    <h2><%= @name_of_list %></h2>
+  </header>
+  
+  <ul>
+    <% @todos.each do |todo| %>
+      <li class='todos'><p><%= todo %></p></li>
+    <% end %>
+  </ul>
+  
+  <br><br><br>
+  
+  <form action='/lists/<%= @index %>' method='post'>
+    <dl>
+      <dt>
+      <label for='todo_item'>Enter a new todo item:</label>
+      </dt>
+      <dd>
+        <input name='todo_item' placeholder='Todo Item' type ='text' value=''>
+      </dd>
+    </dl>
+    <fieldset class='actions'>
+      <input type='submit' value='Add'>
+      <a href='/lists'>Cancel</a>
+    </fieldset>
+  </form>
+
+  <br><br>
+
+</section>
+
+<% content_for :header_links do %>
+  <a href='/lists'>All Lists</a>
+<% end %>
+
