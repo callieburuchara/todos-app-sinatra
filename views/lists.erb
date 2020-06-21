@@ -1,3 +1,6 @@
+<ul>
+  </ul>
+
 <ul id="lists">
   <% @lists.each_with_index do |list, index| %>
     <li>
@@ -10,5 +13,5 @@
 </ul>
 
 <% content_for :header_links do %>
-  <a href='/lists/new'>New List</a>
+  <a class='add' href='/lists/new'>New List</a>
 <% end %>

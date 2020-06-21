@@ -41,6 +41,7 @@ end
 
 # Create a new list
 post '/lists' do
+  @params = params
   list_name = params[:list_name].strip
 
   error = error_for_list_name(list_name)
@@ -54,6 +55,7 @@ post '/lists' do
   end
 end
 
+# Display individual list
 get '/lists/:num' do
   @index = params[:num].to_i
   @name_of_list = session[:lists][@index][:name]
@@ -61,7 +63,47 @@ get '/lists/:num' do
   erb :individual_list
 end
 
-post '/lists/:num' do 
+# Check/Uncheck to do items
+post '/lists/:num/todos/:todo_index' do
+  @index = params[:num].to_i
+  erb :individual_list
+end
+
+# Update existing to do list
+post '/lists/:num' do
+  list_name = params[:list_name].strip
+  @index = params[:num].to_i
+  @list = session[:lists][@index]
+
+
+  error = error_for_list_name(list_name)
+  if error
+    session[:error] = error
+    erb :edit_list
+  else
+    @list[:name] = list_name   
+    session[:success] = 'The list has been updated.'
+    redirect "/lists/#{@index}"
+  end
+end
+
+# Edit an existing list
+get '/lists/:num/edit' do
+  @index = params[:num].to_i
+  @name_of_list = session[:lists][@index][:name]
+  erb :edit_list
+end
+
+# Delete a list
+post '/lists/:num/destroy' do 
+  index = params[:num].to_i
+  session[:lists].delete_at(index)
+  session[:success] = 'The list has been deleted.'
+  redirect '/lists'
+end
+
+# Add a task
+post '/lists/:num/todos' do 
   @index = params[:num].to_i
   todo_item = params[:todo_item].strip
   
@@ -72,6 +114,15 @@ post '/lists/:num' do
     session[:success] = "Todo item added successfully!"
   end
 
-  redirect 'lists/' + params[:num]
+  redirect '/lists/' + params[:num]
   erb :individual_list
 end
+
+# Delete a task
+post '/lists/:num/todos/:todo_index/destroy' do
+  @index = params[:num].to_i
+  session[:lists][@index][:todos].delete_at(params[:todo_index].to_i)
+  session[:success] = 'The todo item has been deleted.'
+  redirect '/lists/@index'
+end
+

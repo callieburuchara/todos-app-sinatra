@@ -2,23 +2,39 @@
 
   <header>
     <h2><%= @name_of_list %></h2>
+    <ul>
+      <li><a class='edit' href='/lists/<%= @index %>/edit'>Edit List</a></li>
+    </ul>
   </header>
   
   <ul>
-    <% @todos.each do |todo| %>
-      <li class='todos'><p><%= todo %></p></li>
+    <% @todos.each_with_index do |todo, index| %>
+      <li class='complete'>
+
+        <form action="/lists/<%= @index %>/todos/<%= index %>" method='post' class='check'>
+          <input type='hidden' name='completed' value='<%= !todo[:completed] %>'>
+          <button type='submit'>Complete</button>
+        </form>
+
+        <h3><%= todo %></h3>
+        
+        <form action='/lists/<%= @index %>/todos/<%= index %>/destroy' method='post' class='delete'>
+          <button type='submit'>Delete</button>
+        </form> 
+        
+      </li>
     <% end %>
   </ul>
   
   <br><br><br>
   
-  <form action='/lists/<%= @index %>' method='post'>
+  <form action='/lists/<%= @index %>/todos' method='post'>
     <dl>
       <dt>
       <label for='todo_item'>Enter a new todo item:</label>
       </dt>
       <dd>
-        <input name='todo_item' placeholder='Todo Item' type ='text' value=''>
+        <input name='todo_item' placeholder='Something to do' type ='text' value=''>
       </dd>
     </dl>
     <fieldset class='actions'>
@@ -27,11 +43,10 @@
     </fieldset>
   </form>
 
-  <br><br>
 
 </section>
 
 <% content_for :header_links do %>
-  <a href='/lists'>All Lists</a>
+  <a class='list' href='/lists'>All Lists</a>
 <% end %>
 
