@@ -4,7 +4,7 @@
     <h2>Editing "<%= @name_of_list %>"</h2>
     <ul>
       <li>
-        <form action='/lists/<%= @list_id %>/destroy' method='post'>
+        <form class='delete' action='/lists/<%= @list_id %>/destroy' method='post'>
           <button type='submit' class='delete'>Delete List</button>
         </form>
     </ul>

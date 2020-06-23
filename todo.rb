@@ -8,11 +8,12 @@ require 'sinatra/content_for'
 configure do
   enable :sessions
   set :session_secret, 'secret'
+  set :erb, :escape_html => true
 end
 
 helpers do
   def next_element_id(elements)
-    max = elements.map { |todo| todo[:id] }.max || 0
+    max = elements.map { |element| element[:id] }.max || 0
     max + 1
   end
 
@@ -36,8 +37,8 @@ helpers do
   def sort_lists(lists, &block)
     complete_lists, incomplete_lists = lists.partition {|list| list_complete?(list) }
 
-    incomplete_lists.each {|list| yield list, lists.index(list)}
-    complete_lists.each {|list| yield list, lists.index(list) }
+    incomplete_lists.each(&block) 
+    complete_lists.each(&block) 
   end
 
   def sort_todos(todos, &block)
@@ -84,6 +85,14 @@ def error_for_todo(name)
   end
 end
 
+def load_list(id)
+  list = session[:lists].find {|list| list[:id] == id }
+  return list if list
+
+  session[:error] = 'The specified list was not found.'
+  redirect '/lists'
+end
+
 # Create a new list
 post '/lists' do
   list_name = params[:list_name].strip
@@ -102,21 +111,24 @@ end
 
 # Display individual list
 get '/lists/:num' do
-  @list_id = params[:num].to_i
-  @name_of_list = session[:lists][@list_id][:name]
-  @list = session[:lists][@list_id]
+  id = params[:num].to_i
+  @list = load_list(id)
+  list = load_list(id)
+  @list_name = list[:name]
+  @list_id = list[:id]
+  @todos = list[:todos]
   erb :individual_list
 end
 
 # Update completion status of a todo
 post '/lists/:num/todos/:todo_index' do
   @list_id = params[:num].to_i
-  @list = session[:lists][@list_id]
-  
+  @list = load_list(@list_id)  
   todo_id = params[:todo_index].to_i
   is_completed = (params[:completed] == 'true')
   
-  @list[:todos][todo_id][:completed] = is_completed
+  todo = @list[:todos].find {|todo| todo[:id] == todo_id }
+  todo[:completed] = is_completed
 
   session[:success] = 'The todo has been updated.'
   redirect "/lists/#{@list_id}"
@@ -125,9 +137,14 @@ end
 # Delete a list
 post '/lists/:num/destroy' do 
   @list_id = params[:num].to_i
-  session[:lists].delete_at(@list_id)
-  session[:success] = 'The list has been deleted.'
-  redirect '/lists'
+  session[:lists].reject! {|list| list[:id] == id }
+  
+  if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
+    '/lists' 
+  else
+    session[:success] = 'The list has been deleted.'
+    redirect '/lists'
+  end
 end
 
 # Mark all todos complete for a list 
@@ -149,8 +166,7 @@ end
 post '/lists/:num' do
   list_name = params[:list_name].strip
   @list_id = params[:num].to_i
-  @list = session[:lists][@list_id]
-
+  @list = load_list(@list_id)
 
   error = error_for_list_name(list_name)
   if error
@@ -166,6 +182,7 @@ end
 # Edit an existing list
 get '/lists/:num/edit' do
   @list_id = params[:num].to_i
+  @list = load_list(@list_id)
   @name_of_list = session[:lists][@list_id][:name]
   erb :edit_list
 end
@@ -173,26 +190,35 @@ end
 # Add a todo list item
 post '/lists/:num/todos' do 
   @list_id = params[:num].to_i
-  @list = session[:lists][@list_id]
+  @list = load_list(@list_id)
   text = params[:todo_item].strip
   
   error = error_for_todo(text)
   if error 
     session[:error] = error
   else
-    @list[:todos] << { name: text, completed: false }
+
+    id = next_element_id(@list[:todos])
+    @list[:todos] << { id: id, name: text, completed: false }
+    
     session[:success] = "Todo item added successfully!"
+    redirect '/lists/' + params[:num]
   end
 
-  redirect '/lists/' + params[:num]
   erb :individual_list
 end
 
 # Delete a task
 post '/lists/:num/todos/:todo_index/destroy' do
   @list_id = params[:num].to_i
-  session[:lists][@list_id][:todos].delete_at(params[:todo_index].to_i)
-  session[:success] = 'The todo item has been deleted.'
-  redirect "/lists/#{@list_id}"
-end
+  @list = load_list(@list_id)
 
+  todo_id = params[:todo_index].to_i
+  @list[:todos].reject! {|todo| todo[:id] == todo_id}
+  if env["HTTP_X_REQUESTED_WITH"] == "XMLHttpRequest"
+    status 204
+  else
+    session[:success] = "The todo has been deleted."
+    redirect "/lists/#{@list_id}"
+  end
+end
